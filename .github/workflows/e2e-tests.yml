@@ -1,0 +1,80 @@
+name: Run Cypress Tests
+
+on:
+  repository_dispatch:
+    types: [run-e2e-tests]
+
+jobs:
+
+  e2e:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Clonar repo de testes
+        uses: actions/checkout@v4
+
+
+      - name: Clonar projeto Laravel
+        uses: actions/checkout@v4
+        with:
+          repository: allanbraquiel/projeto-teste-e2e
+          path: projeto-teste-e2e
+
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+
+      - name: Instalar dependências Cypress
+        run: npm install
+
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+
+
+      - name: Instalar dependências Laravel
+        run: |
+          cd projeto-teste-e2e
+          composer install
+
+
+      - name: Criar .env
+        run: |
+          cd projeto-teste-e2e
+          cp .env.example .env
+
+
+      - name: Gerar APP_KEY
+        run: |
+          cd projeto-teste-e2e
+          php artisan key:generate
+
+
+      - name: Rodar migrations
+        run: |
+          cd projeto-teste-e2e
+          php artisan migrate
+
+
+      - name: Subir servidor Laravel
+        run: |
+          cd projeto-teste-e2e
+          php artisan serve --host=127.0.0.1 --port=8000 &
+
+
+      - name: Esperar servidor iniciar
+        run: npx wait-on http://127.0.0.1:8000
+
+
+      - name: Executar Cypress
+        run: npx run-p "test:login" "test:pessoas" "test:produtos"
+        env:
+            CYPRESS_EMAIL: ${{ secrets.CYPRESS_EMAIL }}
+            CYPRESS_PASSWORD: ${{ secrets.CYPRESS_PASSWORD }}
