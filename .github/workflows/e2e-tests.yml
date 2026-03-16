@@ -87,6 +87,14 @@ jobs:
           cd projeto-teste-e2e
           php artisan migrate --force
 
+      - name: Criar usuário E2E
+        run: |
+          cd projeto-teste-e2e
+          php artisan tinker --execute="\App\Models\User::updateOrCreate(['email' => env('E2E_EMAIL')], ['name' => 'Usuário E2E', 'password' => \Illuminate\Support\Facades\Hash::make(env('E2E_PASSWORD'))]);"
+        env:
+          E2E_EMAIL: ${{ secrets.CYPRESS_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.CYPRESS_PASSWORD }}
+
 
       - name: Subir servidor Laravel
         run: |
