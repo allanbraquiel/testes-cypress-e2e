@@ -9,6 +9,9 @@ jobs:
   e2e:
 
     runs-on: ubuntu-latest
+    env:
+      TERM: xterm
+      CI: true
 
     steps:
 
@@ -56,25 +59,110 @@ jobs:
           cd projeto-teste-e2e
           php artisan key:generate
 
+      - name: Ajustar permissões e limpar cache
+        run: |
+          cd projeto-teste-e2e
+          chmod -R 775 storage bootstrap/cache
+          php artisan optimize:clear
+
+      - name: Instalar dependências frontend Laravel
+        run: |
+          cd projeto-teste-e2e
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build frontend Laravel
+        run: |
+          cd projeto-teste-e2e
+          npm run build
+
 
       - name: Rodar migrations
         run: |
           cd projeto-teste-e2e
-          php artisan migrate
+          php artisan migrate --force
 
 
       - name: Subir servidor Laravel
         run: |
           cd projeto-teste-e2e
-          php artisan serve --host=127.0.0.1 --port=8000 &
+          php artisan serve --host=127.0.0.1 --port=8000 > /tmp/laravel-server.log 2>&1 &
 
 
       - name: Esperar servidor iniciar
         run: npx wait-on http://127.0.0.1:8000
 
+      - name: Validar /login antes dos testes
+        run: |
+          status=$(curl -s -o /tmp/laravel-login-response.html -w "%{http_code}" http://127.0.0.1:8000/login)
+          echo "HTTP /login => $status"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "----- Trecho de resposta /login -----"
+            head -n 120 /tmp/laravel-login-response.html || true
+            echo "----- storage/logs/laravel.log -----"
+            tail -n 200 projeto-teste-e2e/storage/logs/laravel.log || true
+            echo "----- /tmp/laravel-server.log -----"
+            tail -n 200 /tmp/laravel-server.log || true
+            exit 1
+          fi
+
 
       - name: Executar Cypress
         run: npm run test:login && npm run test:pessoas && npm run test:produtos
         env:
-            CYPRESS_EMAIL: ${{ secrets.CYPRESS_EMAIL }}
-            CYPRESS_PASSWORD: ${{ secrets.CYPRESS_PASSWORD }}
+          CYPRESS_EMAIL: ${{ secrets.CYPRESS_EMAIL }}
+          CYPRESS_PASSWORD: ${{ secrets.CYPRESS_PASSWORD }}
+
+      - name: Upload screenshots (falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots/**
+          if-no-files-found: ignore
+
+      - name: Upload videos (falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: cypress/videos/**
+          if-no-files-found: ignore
+
+      - name: Upload logs Laravel (falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laravel-logs
+          path: |
+            projeto-teste-e2e/storage/logs/**
+            /tmp/laravel-server.log
+            /tmp/laravel-login-response.html
+          if-no-files-found: ignore
+
+      - name: Enviar e-mail ao responsável (falha)
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: true
+          subject: "[CI] Falha nos testes E2E - ${{ github.repository }}"
+          to: ${{ secrets.TEST_RESPONSAVEL_EMAIL }}
+          from: ${{ secrets.MAIL_FROM }}
+          body: |
+            Os testes E2E falharam.
+
+            Repositório: ${{ github.repository }}
+            Workflow: ${{ github.workflow }}
+            Job: ${{ github.job }}
+            Branch/Ref: ${{ github.ref }}
+            Commit: ${{ github.sha }}
+            Execução: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Verifique os artefatos "cypress-screenshots" e "cypress-videos" na execução.
