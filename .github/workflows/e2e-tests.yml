@@ -65,7 +65,7 @@ jobs:
           mkdir -p database
           touch database/database.sqlite
           chmod -R 775 storage bootstrap/cache
-          php artisan optimize:clear
+          php artisan config:clear
 
       - name: Instalar dependências frontend Laravel
         run: |
