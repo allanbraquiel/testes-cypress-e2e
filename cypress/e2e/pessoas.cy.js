@@ -22,8 +22,8 @@ describe('CRUD Pessoas', () => {
         cy.get('[name="email"]').type(pessoa.email)
         cy.get('[name="telefone"]').type(pessoa.telefone)
 
-        //cy.contains('Salvar').click()
-        cy.contains('Confirmar').click()
+        cy.contains('Salvar').click()
+        // cy.contains('Confirmar').click()
 
 
         cy.url().should('include','/pessoas')
