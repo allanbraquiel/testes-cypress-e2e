@@ -74,7 +74,7 @@ jobs:
 
 
       - name: Executar Cypress
-        run: npx run-p "test:login" "test:pessoas" "test:produtos"
+        run: npm run test:login && npm run test:pessoas && npm run test:produtos
         env:
             CYPRESS_EMAIL: ${{ secrets.CYPRESS_EMAIL }}
             CYPRESS_PASSWORD: ${{ secrets.CYPRESS_PASSWORD }}
