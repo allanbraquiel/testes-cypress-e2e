@@ -62,6 +62,8 @@ jobs:
       - name: Ajustar permissões e limpar cache
         run: |
           cd projeto-teste-e2e
+          mkdir -p database
+          touch database/database.sqlite
           chmod -R 775 storage bootstrap/cache
           php artisan optimize:clear
 
