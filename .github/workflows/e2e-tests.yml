@@ -115,8 +115,8 @@ jobs:
       - name: Executar Cypress
         run: npm run test:login && npm run test:pessoas && npm run test:produtos
         env:
-          CYPRESS_EMAIL: ${{ secrets.CYPRESS_EMAIL }}
-          CYPRESS_PASSWORD: ${{ secrets.CYPRESS_PASSWORD }}
+          CYPRESS_email: ${{ secrets.CYPRESS_EMAIL }}
+          CYPRESS_password: ${{ secrets.CYPRESS_PASSWORD }}
 
       - name: Upload screenshots (falha)
         if: failure()
