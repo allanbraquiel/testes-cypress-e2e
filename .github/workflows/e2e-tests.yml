@@ -146,6 +146,16 @@ jobs:
           path: allure-results/
           if-no-files-found: ignore
 
+      - name: Compactar allure-results
+        if: always()
+        run: |
+          if [ -d allure-results ] && [ "$(find allure-results -type f | wc -l)" -gt 0 ]; then
+            zip -r allure-results.zip allure-results/
+          else
+            echo "Sem conteúdo em allure-results para compactar"
+            touch allure-results.zip
+          fi
+
       - name: Compactar relatório Allure
         if: always()
         run: zip -r allure-report.zip allure-report/
@@ -196,7 +206,7 @@ jobs:
           subject: "[CI] Falha nos testes E2E - ${{ github.repository }}"
           to: ${{ secrets.TEST_RESPONSAVEL_EMAIL }}
           from: ${{ secrets.MAIL_FROM }}
-          attachments: allure-report.zip
+          attachments: allure-report.zip,allure-results.zip
           body: |
             Os testes E2E falharam.
 
