@@ -126,9 +126,25 @@ jobs:
           CYPRESS_email: ${{ secrets.CYPRESS_EMAIL }}
           CYPRESS_password: ${{ secrets.CYPRESS_PASSWORD }}
 
+      - name: Diagnóstico Allure Results
+        if: always()
+        run: |
+          echo "Arquivos em allure-results:"
+          ls -la allure-results || true
+          echo "Total de arquivos JSON:"
+          find allure-results -type f -name "*.json" | wc -l || true
+
       - name: Gerar relatório Allure
         if: always()
         run: npx allure generate allure-results --clean -o allure-report
+
+      - name: Upload allure-results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results/
+          if-no-files-found: ignore
 
       - name: Compactar relatório Allure
         if: always()
