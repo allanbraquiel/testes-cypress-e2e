@@ -126,6 +126,22 @@ jobs:
           CYPRESS_email: ${{ secrets.CYPRESS_EMAIL }}
           CYPRESS_password: ${{ secrets.CYPRESS_PASSWORD }}
 
+      - name: Gerar relatório Allure
+        if: always()
+        run: npx allure generate allure-results --clean -o allure-report
+
+      - name: Compactar relatório Allure
+        if: always()
+        run: zip -r allure-report.zip allure-report/
+
+      - name: Upload relatório Allure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
+          if-no-files-found: ignore
+
       - name: Upload screenshots (falha)
         if: failure()
         uses: actions/upload-artifact@v4
@@ -164,6 +180,7 @@ jobs:
           subject: "[CI] Falha nos testes E2E - ${{ github.repository }}"
           to: ${{ secrets.TEST_RESPONSAVEL_EMAIL }}
           from: ${{ secrets.MAIL_FROM }}
+          attachments: allure-report.zip
           body: |
             Os testes E2E falharam.
 
@@ -174,4 +191,10 @@ jobs:
             Commit: ${{ github.sha }}
             Execução: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Verifique os artefatos "cypress-screenshots" e "cypress-videos" na execução.
+            Artefatos disponíveis na execução:
+            - allure-report   → Relatório completo Allure (HTML interativo)
+            - cypress-screenshots → Screenshots dos testes com falha
+            - cypress-videos      → Vídeos das execuções com falha
+
+            Acesse os artefatos em:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
